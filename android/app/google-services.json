@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "288435076872",
+    "project_id": "chichanka-perfume-app",
+    "storage_bucket": "chichanka-perfume-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288435076872:android:ba2b5cadc039c54fc776bd",
+        "android_client_info": {
+          "package_name": "com.example.chichanka_perfume"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVj0w3xtIE8unviC4_3Q-EBvs_r82QNx0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
