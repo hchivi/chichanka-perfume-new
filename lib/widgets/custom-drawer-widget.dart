@@ -1,4 +1,5 @@
 // ignore_for_file: file_names, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last, no_leading_underscores_for_local_identifiers
+import 'package:chichanka_perfume/screens/user-panel/all-orders-screen.dart';
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -112,7 +113,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
                 ),
                 onTap: () {
                   Get.back();
-                  // Get.to(() => AllOrdersScreen());
+                  Get.to(() => AllOrdersScreen());
                 },
               ),
             ),

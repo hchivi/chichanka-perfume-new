@@ -4,12 +4,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:chichanka_perfume/models/cart-model.dart';
 import 'package:chichanka_perfume/models/product-model.dart';
+import 'package:chichanka_perfume/screens/user-panel/cart-screen.dart';
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   ProductModel productModel;
@@ -35,7 +37,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ),
         actions: [
           GestureDetector(
-            // onTap: () => Get.to(() => CartScreen()),
+            onTap: () => Get.to(() => CartScreen()),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Icon(
@@ -192,7 +194,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                     style: TextStyle(
                                         color: AppConstant.appTextColor),
                                   ),
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    // sendMessageOnWhatsApp(
+                                    //     productModel: widget.productModel);
+                                  },
                                 ),
                               ),
                             ),
@@ -301,7 +306,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   // static Future<void> sendMessageOnWhatsApp({
   //   required ProductModel productModel,
   // }) async {
-  //   final number = "+923075812354";
+  //   final number = "+84942468709";
   //   final message =
   //       "Hello Techi4u \n i want to know about this product \n ${productModel.productName} \n ${productModel.productId}";
 
@@ -364,7 +369,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         productQuantity: 1,
-        productTotalPrice: double.parse(widget.productModel.fullPrice),
+        productTotalPrice: double.parse(widget.productModel.isSale
+            ? widget.productModel.salePrice
+            : widget.productModel.fullPrice),
       );
 
       await documentReference.set(cartModel.toMap());
