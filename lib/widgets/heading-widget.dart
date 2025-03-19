@@ -32,7 +32,7 @@ class HeadingWidget extends StatelessWidget {
                   headingTitle,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
+                    color: Colors.red,
                   ),
                 ),
                 Text(

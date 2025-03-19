@@ -16,9 +16,10 @@ void placeOrder({
   required String customerPhone,
   required String customerAddress,
   required String customerDeviceToken,
+  required String paymentMethod, // Thêm hình thức thanh toán
+  String? couponCode, // Thêm mã giảm giá (có thể null)
 }) async {
   final user = FirebaseAuth.instance.currentUser;
-  //NotificationService notificationService = NotificationService();
   EasyLoading.show(status: "Vui lòng chờ...");
   if (user != null) {
     try {
@@ -29,6 +30,17 @@ void placeOrder({
           .get();
 
       List<QueryDocumentSnapshot> documents = querySnapshot.docs;
+
+      if (documents.isEmpty) {
+        EasyLoading.dismiss();
+        Get.snackbar(
+          "Lỗi",
+          "Giỏ hàng trống!",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
 
       for (var doc in documents) {
         Map<String, dynamic>? data = doc.data() as Map<String, dynamic>;
@@ -42,7 +54,7 @@ void placeOrder({
           categoryName: data['categoryName'],
           salePrice: data['salePrice'],
           fullPrice: data['fullPrice'],
-          productImages: data['productImages'],
+          productImages: List<String>.from(data['productImages']),
           deliveryTime: data['deliveryTime'],
           isSale: data['isSale'],
           productDescription: data['productDescription'],
@@ -56,74 +68,45 @@ void placeOrder({
           customerPhone: customerPhone,
           customerAddress: customerAddress,
           customerDeviceToken: customerDeviceToken,
+          paymentMethod: paymentMethod, // Thêm vào model nếu cần
+          couponCode: couponCode ?? '', // Thêm vào model nếu cần
         );
 
-        for (var x = 0; x < documents.length; x++) {
-          await FirebaseFirestore.instance
-              .collection('orders')
-              .doc(user.uid)
-              .set(
-            {
-              'uId': user.uid,
-              'customerName': customerName,
-              'customerPhone': customerPhone,
-              'customerAddress': customerAddress,
-              'customerDeviceToken': customerDeviceToken,
-              'orderStatus': false,
-              'createdAt': DateTime.now()
-            },
-          );
+        // Lưu thông tin đơn hàng chung
+        await FirebaseFirestore.instance.collection('orders').doc(user.uid).set(
+          {
+            'uId': user.uid,
+            'customerName': customerName,
+            'customerPhone': customerPhone,
+            'customerAddress': customerAddress,
+            'customerDeviceToken': customerDeviceToken,
+            'orderStatus': false,
+            'createdAt': DateTime.now(),
+            'paymentMethod': paymentMethod, // Lưu hình thức thanh toán
+            'couponCode': couponCode ?? '', // Lưu mã giảm giá
+          },
+          SetOptions(merge: true), // Sử dụng merge để không ghi đè dữ liệu cũ
+        );
 
-          //upload orders
-          await FirebaseFirestore.instance
-              .collection('orders')
-              .doc(user.uid)
-              .collection('confirmOrders')
-              .doc(orderId)
-              .set(cartModel.toMap());
+        // Lưu chi tiết đơn hàng
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(user.uid)
+            .collection('confirmOrders')
+            .doc(orderId)
+            .set(cartModel.toMap());
 
-          //delete cart products
-          await FirebaseFirestore.instance
-              .collection('cart')
-              .doc(user.uid)
-              .collection('cartOrders')
-              .doc(cartModel.productId.toString())
-              .delete()
-              .then((value) {
-            print('Đã xóa $cartModel.productId.toString()');
-          });
-        }
-        // save notification
-        // await FirebaseFirestore.instance
-        //     .collection('notifications')
-        //     .doc(user.uid)
-        //     .collection('notifications')
-        //     .doc()
-        //     .set(
-        //   {
-        //     'title': "Order Successfully placed ${cartModel.productName}",
-        //     'body': cartModel.productDescription,
-        //     'isSeen': false,
-        //     'createdAt': DateTime.now(),
-        //     'image': cartModel.productImages,
-        //     'fullPrice': cartModel.fullPrice,
-        //     'salePrice': cartModel.salePrice,
-        //     'isSale': cartModel.isSale,
-        //     'productId': cartModel.productId,
-        //   },
-        // );
+        // Xóa sản phẩm khỏi giỏ hàng
+        await FirebaseFirestore.instance
+            .collection('cart')
+            .doc(user.uid)
+            .collection('cartOrders')
+            .doc(cartModel.productId.toString())
+            .delete()
+            .then((value) {
+          print('Đã xóa ${cartModel.productId.toString()}');
+        });
       }
-
-      //sent notification
-      // await SendNotificationService.sendNotificationUsingApi(
-      //   token:
-      //       "eUn8RwbTSwK3bv9j3rKQu8:APA91bHYEje64oVDk6dsLNI77jELGjmh59RB_yPNmlZXzqMoJB76HF7l6qMCPFSez5SqsDKoIdt6k8RDzDRt2IVTchgIigmRD_QmJIxZ1MkSscXknbOmPsZkYsUGToaFZQvvb1c-JFec",
-      //   title: "Order Successfully placed",
-      //   body: "notification body",
-      //   data: {
-      //     "screen": "notification",
-      //   },
-      // );
 
       print("Đơn hàng đã được xác nhận");
       Get.snackbar(
@@ -138,6 +121,21 @@ void placeOrder({
       Get.offAll(() => MainScreen());
     } catch (e) {
       print("Lỗi $e");
+      EasyLoading.dismiss();
+      Get.snackbar(
+        "Lỗi",
+        "Không thể đặt hàng: $e",
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
+  } else {
+    EasyLoading.dismiss();
+    Get.snackbar(
+      "Lỗi",
+      "Vui lòng đăng nhập để đặt hàng!",
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+    );
   }
 }

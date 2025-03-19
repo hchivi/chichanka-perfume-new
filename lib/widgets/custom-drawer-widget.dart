@@ -1,168 +1,265 @@
-// ignore_for_file: file_names, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last, no_leading_underscores_for_local_identifiers
 import 'package:chichanka_perfume/screens/user-panel/all-orders-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/all-products-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/contact-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/favorite-product-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/settings-screen.dart';
+
 import 'package:chichanka_perfume/utils/app-constant.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
 import '../screens/auth-ui/welcome-screen.dart';
+import '../models/user-model.dart';
 
-class DrawerWidget extends StatefulWidget {
+class DrawerWidget extends StatelessWidget {
   const DrawerWidget({super.key});
 
-  @override
-  State<DrawerWidget> createState() => _DrawerWidgetState();
-}
+  Future<UserModel?> _fetchUserData() async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        DocumentSnapshot doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+        if (doc.exists) {
+          return UserModel.fromMap(doc.data() as Map<String, dynamic>);
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 
-class _DrawerWidgetState extends State<DrawerWidget> {
+  String _getInitials(String name) {
+    if (name.isEmpty) return "G";
+    List<String> nameParts = name.split(' ');
+    return nameParts
+        .map((part) => part.isNotEmpty ? part[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: Get.height / 25),
-      child: Drawer(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topRight: Radius.circular(20.0),
-            bottomRight: Radius.circular(20.0),
-          ),
-        ),
-        child: Wrap(
-          runSpacing: 10,
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
-              child: ListTile(
-                titleAlignment: ListTileTitleAlignment.center,
-                title: Text(
-                  "Huynh Chi Vi",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                subtitle: Text(
-                  "Version 1.0.1",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                leading: CircleAvatar(
-                  radius: 22.0,
-                  backgroundColor: AppConstant.appMainColor,
-                  child: Text(
-                    "HCV",
-                    style: TextStyle(color: AppConstant.appTextColor),
-                  ),
-                ),
+    return Drawer(
+      elevation: 8.0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+      ),
+      backgroundColor: AppConstant.navy,
+      child: FutureBuilder<UserModel?>(
+        future: _fetchUserData(),
+        builder: (context, snapshot) {
+          String displayName = "Guest";
+          String initials = "G";
+
+          if (snapshot.connectionState == ConnectionState.done &&
+              snapshot.hasData) {
+            displayName = snapshot.data!.username;
+            initials = _getInitials(displayName);
+          }
+
+          return Column(
+            children: [
+              _buildHeader(context, displayName, initials),
+              const Divider(
+                indent: 16,
+                endIndent: 16,
+                thickness: 1,
+                color: Colors.grey,
               ),
-            ),
-            Divider(
-              indent: 10.0,
-              endIndent: 10.0,
-              thickness: 1.5,
-              color: Colors.grey,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: ListTile(
-                titleAlignment: ListTileTitleAlignment.center,
-                title: Text(
-                  "Trang chủ",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                leading: Icon(
-                  Icons.home,
-                  color: AppConstant.appTextColor,
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward,
-                  color: AppConstant.appTextColor,
-                ),
+              Expanded(
+                child: _buildMenuItems(context),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: ListTile(
-                titleAlignment: ListTileTitleAlignment.center,
-                title: Text(
-                  "Sản phẩm",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                leading: Icon(
-                  Icons.production_quantity_limits,
-                  color: AppConstant.appTextColor,
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward,
-                  color: AppConstant.appTextColor,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: ListTile(
-                titleAlignment: ListTileTitleAlignment.center,
-                title: Text(
-                  "Đơn hàng",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                leading: Icon(
-                  Icons.shopping_bag,
-                  color: AppConstant.appTextColor,
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward,
-                  color: AppConstant.appTextColor,
-                ),
-                onTap: () {
-                  Get.back();
-                  Get.to(() => AllOrdersScreen());
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: ListTile(
-                titleAlignment: ListTileTitleAlignment.center,
-                title: Text(
-                  "Liên hệ",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                leading: Icon(
-                  Icons.help,
-                  color: AppConstant.appTextColor,
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward,
-                  color: AppConstant.appTextColor,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: ListTile(
-                onTap: () async {
-                  GoogleSignIn googleSignIn = GoogleSignIn();
-                  FirebaseAuth _auth = FirebaseAuth.instance;
-                  await _auth.signOut();
-                  await googleSignIn.signOut();
-                  Get.offAll(() => WelcomeScreen());
-                },
-                titleAlignment: ListTileTitleAlignment.center,
-                title: Text(
-                  "Đăng xuất",
-                  style: TextStyle(color: AppConstant.appTextColor),
-                ),
-                leading: Icon(
-                  Icons.logout,
-                  color: AppConstant.appTextColor,
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward,
-                  color: AppConstant.appTextColor,
-                ),
-              ),
-            ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHeader(
+      BuildContext context, String displayName, String initials) {
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 32,
+        bottom: 24,
+        left: 20,
+        right: 20,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppConstant.appMainColor.withValues(alpha: 0.9),
+            AppConstant.navy,
           ],
         ),
-        backgroundColor: AppConstant.appScendoryColor,
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
+            child: Text(
+              initials,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName,
+                style: TextStyle(
+                  color: AppConstant.appTextColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "Version 1.0.1",
+                style: TextStyle(
+                  color: AppConstant.appTextColor.withValues(alpha: 0.7),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItems(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      children: [
+        _buildMenuItem(
+          context: context,
+          title: "Trang chủ",
+          icon: Icons.home,
+          textColor: Colors.black,
+        ),
+        _buildMenuItem(
+          context: context,
+          title: "Sản phẩm",
+          icon: Icons.production_quantity_limits,
+          textColor: Colors.black,
+          onTap: () {
+            Get.back();
+            Get.to(() => const AllProductsScreen());
+          },
+        ),
+        _buildMenuItem(
+          context: context,
+          title: "Sản phẩm yêu thích",
+          icon: Icons.favorite,
+          textColor: Colors.black,
+          onTap: () {
+            Get.back();
+            Get.to(() => const FavouriteProductScreen());
+          },
+        ),
+        _buildMenuItem(
+          context: context,
+          title: "Đơn hàng",
+          icon: Icons.shopping_bag,
+          textColor: Colors.black,
+          onTap: () {
+            Get.back();
+            Get.to(() => const AllOrdersScreen());
+          },
+        ),
+        _buildMenuItem(
+          context: context,
+          title: "Liên hệ",
+          icon: Icons.help,
+          textColor: Colors.black,
+          onTap: () {
+            Get.back();
+            Get.to(() => const ContactScreen());
+          },
+        ),
+        _buildMenuItem(
+          context: context,
+          title: "Cài đặt",
+          icon: Icons.settings,
+          textColor: Colors.black,
+          onTap: () {
+            Get.back();
+            Get.to(() => SettingsScreen());
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildMenuItem(
+          context: context,
+          title: "Đăng xuất",
+          icon: Icons.logout,
+          onTap: () async {
+            GoogleSignIn googleSignIn = GoogleSignIn();
+            FirebaseAuth auth = FirebaseAuth.instance;
+            await auth.signOut();
+            await googleSignIn.signOut();
+            Get.offAll(() => WelcomeScreen());
+          },
+          isLogout: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuItem({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    VoidCallback? onTap,
+    bool isLogout = false,
+    Color? textColor,
+  }) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(
+          icon,
+          color: isLogout ? Colors.red : AppConstant.appMainColor,
+          size: 24,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color:
+                isLogout ? Colors.red : (textColor ?? AppConstant.appTextColor),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: isLogout ? Colors.red : AppConstant.appTextColor,
+        ),
+        tileColor: Colors.white.withValues(alpha: 0.9),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
     );
   }

@@ -5,121 +5,114 @@ import 'package:chichanka_perfume/screens/user-panel/single-category-products-sc
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_card/image_card.dart';
-
 import '../../models/categories-model.dart';
 
-class AllCategoriesScreen extends StatefulWidget {
+class AllCategoriesScreen extends StatelessWidget {
   const AllCategoriesScreen({super.key});
 
-  @override
-  State<AllCategoriesScreen> createState() => _AllCategoriesScreenState();
-}
-
-class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(
-          color: AppConstant.appTextColor,
-        ),
+        iconTheme: IconThemeData(color: AppConstant.appTextColor),
         backgroundColor: AppConstant.appMainColor,
         title: Text(
           "Tất cả danh mục",
           style: TextStyle(color: AppConstant.appTextColor),
         ),
       ),
-      body: FutureBuilder(
+      body: FutureBuilder<QuerySnapshot>(
         future: FirebaseFirestore.instance.collection('categories').get(),
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        builder: (context, snapshot) {
+          // Xử lý trạng thái lỗi
           if (snapshot.hasError) {
-            return Center(
-              child: Text("Lỗi"),
-            );
+            return const Center(child: Text("Có lỗi xảy ra"));
           }
+
+          // Xử lý trạng thái đang tải
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
+            return SizedBox(
               height: Get.height / 5,
-              child: Center(
-                child: CupertinoActivityIndicator(),
-              ),
+              child: const Center(child: CupertinoActivityIndicator()),
             );
           }
 
-          if (snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Text("Không tìm thấy dữ liệu!"),
-            );
+          // Xử lý khi không có dữ liệu
+          if (snapshot.data?.docs.isEmpty ?? true) {
+            return const Center(child: Text("Không tìm thấy danh mục!"));
           }
 
-          if (snapshot.data != null) {
-            return GridView.builder(
-              itemCount: snapshot.data!.docs.length,
-              shrinkWrap: true,
-              physics: BouncingScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 3,
-                crossAxisSpacing: 3,
-                childAspectRatio: 1.19,
-              ),
-              itemBuilder: (context, index) {
-                CategoriesModel categoriesModel = CategoriesModel(
-                  categoryId: snapshot.data!.docs[index]['categoryId'],
-                  categoryImg: snapshot.data!.docs[index]['categoryImg'],
-                  categoryName: snapshot.data!.docs[index]['categoryName'],
-                  createdAt: snapshot.data!.docs[index]['createdAt'],
-                  updatedAt: snapshot.data!.docs[index]['updatedAt'],
-                );
-                return Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Get.to(() => AllSingleCategoryProductsScreen(
-                            categoryId: categoriesModel.categoryId,
-                          )),
-                      child: Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Container(
-                          child: FillImageCard(
-                            borderRadius: 10.0,
-                            width: Get.width / 2.3,
-                            heightImage: Get.height / 8,
-                            imageProvider: CachedNetworkImageProvider(
-                              categoriesModel.categoryImg,
-                            ),
-                            title: Center(
-                              child: Text(
-                                categoriesModel.categoryName,
-                                style: TextStyle(fontSize: 12.0),
-                              ),
-                            ),
-                          ),
+          // Xử lý khi có dữ liệu
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            padding:
+                const EdgeInsets.all(10.0), // Thêm padding cho toàn bộ Grid
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 0.85, // Giảm tỷ lệ để tránh tràn
+            ),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final categoryData = snapshot.data!.docs[index];
+              final categoriesModel = CategoriesModel.fromMap(
+                  categoryData.data() as Map<String, dynamic>);
+
+              return GestureDetector(
+                onTap: () => Get.to(() => AllSingleCategoryProductsScreen(
+                      categoryId: categoriesModel.categoryId,
+                    )),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey, width: 1.0),
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: FillImageCard(
+                    borderRadius: 10.0,
+                    width:
+                        double.infinity, // Sử dụng toàn bộ chiều rộng khả dụng
+                    heightImage: Get.height / 6, // Tăng chiều cao ảnh một chút
+                    imageProvider: CachedNetworkImageProvider(
+                      categoriesModel.categoryImg,
+                    ),
+                    title: Center(
+                      child: Text(
+                        categoriesModel.categoryName,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines:
+                            2, // Cho phép tên dài hơn hiển thị trên 2 dòng
+                        style: const TextStyle(
+                          fontSize: 14.0, // Tăng kích thước chữ một chút
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                  ],
-                );
-              },
-            );
-
-            // Container(
-            //   height: Get.height / 5.0,
-            //   child: ListView.builder(
-            //     itemCount: snapshot.data!.docs.length,
-            //     shrinkWrap: true,
-            //     scrollDirection: Axis.horizontal,
-
-            //   ),
-            // );
-          }
-
-          return Container();
+                  ),
+                ),
+              );
+            },
+          );
         },
       ),
+    );
+  }
+}
+
+// Giả định CategoriesModel có phương thức fromMap (nếu chưa có, thêm vào file categories-model.dart)
+extension CategoriesModelExtension on CategoriesModel {
+  static CategoriesModel fromMap(Map<String, dynamic> data) {
+    return CategoriesModel(
+      categoryId: data['categoryId'],
+      categoryImg: data['categoryImg'],
+      categoryName: data['categoryName'],
+      createdAt: data['createdAt'],
+      updatedAt: data['updatedAt'],
     );
   }
 }

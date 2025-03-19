@@ -1,4 +1,3 @@
-// ignore_for_file: file_names, prefer_const_constructors, avoid_unnecessary_containers, prefer_const_literals_to_create_immutables, sized_box_for_whitespace, avoid_print, unused_local_variable, use_build_context_synchronously
 import 'package:chichanka_perfume/controllers/get-customer-device-token-controller.dart';
 import 'package:chichanka_perfume/models/cart-model.dart';
 import 'package:chichanka_perfume/services/place-order-service.dart';
@@ -9,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swipe_action_cell/core/cell.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../controllers/cart-price-controller.dart';
 
 class CheckOutScreen extends StatefulWidget {
@@ -19,321 +19,393 @@ class CheckOutScreen extends StatefulWidget {
 }
 
 class _CheckOutScreenState extends State<CheckOutScreen> {
-  User? user = FirebaseAuth.instance.currentUser;
+  final User? user = FirebaseAuth.instance.currentUser;
   final ProductPriceController productPriceController =
       Get.put(ProductPriceController());
-  TextEditingController nameController = TextEditingController();
-  TextEditingController phoneController = TextEditingController();
-  TextEditingController addressController = TextEditingController();
+  final NumberFormat _currencyFormat = NumberFormat('#,##0', 'vi_VN');
 
-  String? customerToken;
-  String? name;
-  String? phone;
-  String? address;
-
-  // final Razorpay _razorpay = Razorpay();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    // _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    // _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    // _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppConstant.appMainColor,
-        title: Text('Thanh toán'),
+        elevation: 0,
+        title: const Text(
+          'Thanh toán',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('cart')
-            .doc(user!.uid)
-            .collection('cartOrders')
-            .snapshots(),
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text("Lỗi"),
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('cart')
+              .doc(user!.uid)
+              .collection('cartOrders')
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Có lỗi xảy ra'));
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                  child: CupertinoActivityIndicator(radius: 15));
+            }
+
+            if (snapshot.data?.docs.isEmpty ?? true) {
+              return const Center(
+                child: Text(
+                  'Không có sản phẩm để thanh toán!',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final productData = snapshot.data!.docs[index];
+                final cartModel = CartModel.fromMap(
+                    productData.data() as Map<String, dynamic>);
+                return _buildCheckoutItem(cartModel);
+              },
             );
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              height: Get.height / 5,
-              child: Center(
-                child: CupertinoActivityIndicator(),
-              ),
-            );
-          }
+          },
+        ),
+      ),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
 
-          if (snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Text("Không tìm thấy sản phẩm!"),
-            );
-          }
-
-          if (snapshot.data != null) {
-            return Container(
-              child: ListView.builder(
-                itemCount: snapshot.data!.docs.length,
-                shrinkWrap: true,
-                physics: BouncingScrollPhysics(),
-                itemBuilder: (context, index) {
-                  final productData = snapshot.data!.docs[index];
-                  CartModel cartModel = CartModel(
-                    productId: productData['productId'],
-                    categoryId: productData['categoryId'],
-                    productName: productData['productName'],
-                    categoryName: productData['categoryName'],
-                    salePrice: productData['salePrice'],
-                    fullPrice: productData['fullPrice'],
-                    productImages: productData['productImages'],
-                    deliveryTime: productData['deliveryTime'],
-                    isSale: productData['isSale'],
-                    productDescription: productData['productDescription'],
-                    createdAt: productData['createdAt'],
-                    updatedAt: productData['updatedAt'],
-                    productQuantity: productData['productQuantity'],
-                    productTotalPrice: double.parse(
-                        productData['productTotalPrice'].toString()),
-                  );
-
-                  //calculate price
-                  productPriceController.fetchProductPrice();
-                  return SwipeActionCell(
-                    key: ObjectKey(cartModel.productId),
-                    trailingActions: [
-                      SwipeAction(
-                        title: "Xóa",
-                        forceAlignmentToBoundary: true,
-                        performsFirstActionWithFullSwipe: true,
-                        onTap: (CompletionHandler handler) async {
-                          print('Đã xóa');
-
-                          await FirebaseFirestore.instance
-                              .collection('cart')
-                              .doc(user!.uid)
-                              .collection('cartOrders')
-                              .doc(cartModel.productId)
-                              .delete();
-                        },
-                      )
-                    ],
-                    child: Card(
-                      elevation: 5,
-                      color: AppConstant.appTextColor,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppConstant.appMainColor,
-                          backgroundImage:
-                              NetworkImage(cartModel.productImages[0]),
-                        ),
-                        title: Text(cartModel.productName),
-                        subtitle: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Text(cartModel.productTotalPrice.toString()),
-                          ],
+  Widget _buildCheckoutItem(CartModel cartModel) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: SwipeActionCell(
+        key: ObjectKey(cartModel.productId),
+        trailingActions: [
+          SwipeAction(
+            title: "Xóa",
+            color: Colors.red,
+            onTap: (CompletionHandler handler) async {
+              await FirebaseFirestore.instance
+                  .collection('cart')
+                  .doc(user!.uid)
+                  .collection('cartOrders')
+                  .doc(cartModel.productId)
+                  .delete();
+              productPriceController.fetchProductPrice();
+            },
+          ),
+        ],
+        child: Card(
+          elevation: 2,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppConstant.appMainColor.withOpacity(0.1),
+                  backgroundImage: NetworkImage(cartModel.productImages[0]),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cartModel.productName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }
-
-          return Container();
-        },
-      ),
-      bottomNavigationBar: Container(
-        margin: EdgeInsets.only(bottom: 5.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Obx(
-              () => Text(
-                " Tổng cộng ${productPriceController.totalPrice.value.toStringAsFixed(1)} : đ",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Material(
-                child: Container(
-                  width: Get.width / 2.0,
-                  height: Get.height / 18,
-                  decoration: BoxDecoration(
-                    color: AppConstant.appScendoryColor,
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                  child: TextButton(
-                    child: Text(
-                      "Xác nhận đơn đặt hàng",
-                      style: TextStyle(color: AppConstant.appTextColor),
-                    ),
-                    onPressed: () async {
-                      showCustomBottomSheet();
-                    },
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${_currencyFormat.format(cartModel.productTotalPrice)} đ',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: AppConstant.appMainColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'x${cartModel.productQuantity}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Obx(
+            () => Text(
+              'Tổng: ${_currencyFormat.format(productPriceController.totalPrice.value)} đ',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppConstant.appMainColor,
               ),
             ),
-          ],
-        ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppConstant.appScendoryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            onPressed: () => showCustomBottomSheet(),
+            child: const Text(
+              'Xác nhận đơn hàng',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppConstant.appTextColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   void showCustomBottomSheet() {
+    final TextEditingController couponController = TextEditingController();
+    String selectedPaymentMethod =
+        'Thanh toán khi nhận hàng'; // Giá trị mặc định
+
     Get.bottomSheet(
       Container(
+        padding: const EdgeInsets.all(20),
         height: Get.height * 0.8,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(16.0),
-          ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 20.0),
-                child: Container(
-                  height: 55.0,
-                  child: TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Tên',
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 10.0,
-                      ),
-                      hintStyle: TextStyle(
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+              const Text(
+                'Thông tin giao hàng',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppConstant.appMainColor,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 20.0),
-                child: Container(
-                  height: 55.0,
-                  child: TextFormField(
-                    controller: phoneController,
-                    textInputAction: TextInputAction.next,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: 'Số điện thoại',
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 10.0,
-                      ),
-                      hintStyle: TextStyle(
-                        fontSize: 12,
-                      ),
+              const SizedBox(height: 20),
+              _buildTextField(
+                controller: nameController,
+                label: 'Họ và tên người mua',
+                icon: Icons.person,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: phoneController,
+                label: 'Số điện thoại',
+                icon: Icons.phone,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: addressController,
+                label: 'Địa chỉ giao hàng',
+                icon: Icons.location_on,
+              ),
+              const SizedBox(height: 16),
+              // Thông tin miễn phí vận chuyển
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Phí vận chuyển:',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  Text(
+                    'Miễn phí',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppConstant.appMainColor,
                     ),
                   ),
-                ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 20.0),
-                child: Container(
-                  height: 55.0,
-                  child: TextFormField(
-                    controller: addressController,
-                    decoration: InputDecoration(
-                      labelText: 'Địa chỉ',
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 10.0,
-                      ),
-                      hintStyle: TextStyle(
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
+              const SizedBox(height: 16),
+              // Hình thức thanh toán
+              const Text(
+                'Hình thức thanh toán:',
+                style: TextStyle(fontSize: 16),
               ),
+              DropdownButton<String>(
+                value: selectedPaymentMethod,
+                isExpanded: true,
+                items: <String>[
+                  'Thanh toán khi nhận hàng',
+                  'Thanh toán qua thẻ',
+                  'Thanh toán qua ví điện tử'
+                ].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedPaymentMethod = newValue!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              // Khung nhập mã giảm giá
+              _buildTextField(
+                controller: couponController,
+                label: 'Nhập mã giảm giá',
+                icon: Icons.discount,
+              ),
+              const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstant.appMainColor,
-                  padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () async {
-                  if (nameController.text != '' &&
-                      phoneController.text != '' &&
-                      addressController.text != '') {
-                    name = nameController.text.trim();
-                    phone = phoneController.text.trim();
-                    address = addressController.text.trim();
-                    customerToken = await getCustomerDeviceToken();
-
+                  if (nameController.text.isNotEmpty &&
+                      phoneController.text.isNotEmpty &&
+                      addressController.text.isNotEmpty) {
+                    final customerToken = await getCustomerDeviceToken();
                     placeOrder(
                       context: context,
-                      customerName: name!,
-                      customerPhone: phone!,
-                      customerAddress: address!,
-                      customerDeviceToken: customerToken!,
+                      customerName: nameController.text.trim(),
+                      customerPhone: phoneController.text.trim(),
+                      customerAddress: addressController.text.trim(),
+                      customerDeviceToken: customerToken ?? '',
+                      paymentMethod:
+                          selectedPaymentMethod, // Truyền thêm hình thức thanh toán
+                      couponCode:
+                          couponController.text.trim(), // Truyền mã giảm giá
                     );
-
-                    // var options = {
-                    //   'key': 'Your key',
-                    //   'amount': 1000,
-                    //   'currency': 'USD',
-                    //   'name': 'Acme Corp.',
-                    //   'description': 'Fine T-Shirt',
-                    //   'prefill': {
-                    //     'contact': '8888888888',
-                    //     'email': 'test@razorpay.com'
-                    //   }
-                    // };
-
-                    // _razorpay.open(options);
+                    Get.back(); // Đóng bottom sheet sau khi đặt hàng thành công
                   } else {
-                    print("Điền đầy đủ thông tin");
+                    Get.snackbar(
+                      'Lỗi',
+                      'Vui lòng điền đầy đủ thông tin',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
                   }
                 },
-                child: Text(
-                  "Đặt hàng",
-                  style: TextStyle(color: Colors.white),
+                child: const Text(
+                  'Đặt hàng',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              )
+              ),
             ],
           ),
         ),
       ),
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       isDismissible: true,
       enableDrag: true,
-      elevation: 6,
     );
   }
 
-  // void _handlePaymentSuccess(PaymentSuccessResponse response) {
-  //   // Do something when payment succeeds
-  //   //place order serice
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppConstant.appMainColor),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              const BorderSide(color: AppConstant.appMainColor, width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      ),
+    );
+  }
+}
 
-  //   placeOrder(
-  //     context: context,
-  //     customerName: name!,
-  //     customerPhone: phone!,
-  //     customerAddress: address!,
-  //     customerDeviceToken: customerToken!,
-  //   );
-  // }
-
-  // void _handlePaymentError(PaymentFailureResponse response) {
-  //   // Do something when payment fails
-  // }
-
-  // void _handleExternalWallet(ExternalWalletResponse response) {
-  //   // Do something when an external wallet was selected
-  // }
-
-  // @override
-  // void dispose() {
-  //   super.dispose();
-  //   _razorpay.clear();
-  // }
+extension CartModelExtension on CartModel {
+  static CartModel fromMap(Map<String, dynamic> map) {
+    return CartModel(
+      productId: map['productId'],
+      categoryId: map['categoryId'],
+      productName: map['productName'],
+      categoryName: map['categoryName'],
+      salePrice: map['salePrice'],
+      fullPrice: map['fullPrice'],
+      productImages: List<String>.from(map['productImages']),
+      deliveryTime: map['deliveryTime'],
+      isSale: map['isSale'],
+      productDescription: map['productDescription'],
+      createdAt: map['createdAt'],
+      updatedAt: map['updatedAt'],
+      productQuantity: map['productQuantity'],
+      productTotalPrice: double.parse(map['productTotalPrice'].toString()),
+    );
+  }
 }
