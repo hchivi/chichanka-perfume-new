@@ -23,8 +23,6 @@ class OrderModel {
   final String customerDeviceToken;
   final String paymentMethod;
   final String couponCode;
-  final String paymentStatus; // Thêm trạng thái thanh toán
-  final String? momoOrderId; // Thêm ID giao dịch MoMo (nullable)
 
   OrderModel({
     required this.productId,
@@ -49,8 +47,6 @@ class OrderModel {
     required this.customerDeviceToken,
     required this.paymentMethod,
     this.couponCode = '',
-    this.paymentStatus = 'pending', // Giá trị mặc định
-    this.momoOrderId, // Không bắt buộc
   });
 
   Map<String, dynamic> toMap() {
@@ -77,8 +73,6 @@ class OrderModel {
       'customerDeviceToken': customerDeviceToken,
       'paymentMethod': paymentMethod,
       'couponCode': couponCode,
-      'paymentStatus': paymentStatus, // Thêm vào map
-      'momoOrderId': momoOrderId, // Thêm vào map
     };
   }
 
@@ -106,8 +100,6 @@ class OrderModel {
       customerDeviceToken: json['customerDeviceToken'],
       paymentMethod: json['paymentMethod'] ?? 'Thanh toán khi nhận hàng',
       couponCode: json['couponCode'] ?? '',
-      paymentStatus: json['paymentStatus'] ?? 'pending', // Giá trị mặc định
-      momoOrderId: json['momoOrderId'], // Có thể null
     );
   }
 }
