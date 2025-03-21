@@ -83,6 +83,7 @@ class _ContactScreenState extends State<ContactScreen> {
           "Liên hệ",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.back(),
@@ -153,7 +154,7 @@ class _ContactScreenState extends State<ContactScreen> {
           ),
           _buildContactItem(
             icon: Icons.phone,
-            title: "Số điện thoại",
+            title: "Số điện thoại (Zalo)",
             subtitle: "+84 123 456 789",
             onTap: () => _launchPhone("+84123456789"),
             onCopy: () => _copyToClipboard("+84123456789"),

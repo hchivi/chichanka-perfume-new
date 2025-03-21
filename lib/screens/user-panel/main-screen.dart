@@ -5,6 +5,7 @@ import 'package:chichanka_perfume/screens/user-panel/all-flash-sale-products.dar
 import 'package:chichanka_perfume/screens/user-panel/all-products-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/cart-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/product-details-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/settings-screen.dart';
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:chichanka_perfume/widgets/all-brands-widget.dart';
 import 'package:chichanka_perfume/widgets/all-products-widget.dart';
@@ -29,9 +30,31 @@ class MainScreen extends StatefulWidget {
   _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
   String searchQuery = '';
   final CartController cartController = Get.put(CartController());
+  int _selectedIndex = 1; // Trang chủ ở giữa mặc định được chọn
+  AnimationController? _controller; // Sử dụng nullable để tránh lỗi late
+  Animation<double>? _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 1, end: 1).animate(
+      CurvedAnimation(parent: _controller!, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
 
   String formatPrice(String price) {
     final formatter = NumberFormat('#,###', 'vi_VN');
@@ -70,12 +93,13 @@ class _MainScreenState extends State<MainScreen> {
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
-        title: Text(
-          AppConstant.appMainName,
-          style: TextStyle(
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-              color: Colors.white),
+        title: Padding(
+          padding: const EdgeInsets.only(top: 20.0), // Dời logo xuống 10 pixel
+          child: Image.asset(
+            'assets/images/chichanka_logo.png',
+            height: 100,
+            fit: BoxFit.contain,
+          ),
         ),
         centerTitle: true,
         actions: [
@@ -366,6 +390,103 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+        height: 70,
+        child: Stack(
+          children: [
+            // Background with cutout effect
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: CustomPaint(
+                size: Size(double.infinity, 70),
+                painter: BottomNavPainter(selectedIndex: _selectedIndex),
+              ),
+            ),
+            // Navigation items
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(
+                  icon: Icons.shopping_bag,
+                  label: 'Sản phẩm',
+                  index: 0,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                    _controller?.forward(from: 0);
+                    Get.to(() => const AllProductsScreen());
+                  },
+                ),
+                _buildNavItem(
+                  icon: Icons.home,
+                  label: 'Trang chủ',
+                  index: 1,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 1;
+                    });
+                    _controller?.forward(from: 0);
+                  },
+                ),
+                _buildNavItem(
+                  icon: Icons.settings,
+                  label: 'Cài đặt',
+                  index: 2,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                    _controller?.forward(from: 0);
+                    Get.to(() => SettingsScreen());
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+    required VoidCallback onTap,
+  }) {
+    bool isSelected = _selectedIndex == index;
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? AppConstant.navy : Colors.transparent),
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey,
+              size: 24,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppConstant.navy : Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -403,4 +524,57 @@ class _MainScreenState extends State<MainScreen> {
       ],
     );
   }
+}
+
+class BottomNavPainter extends CustomPainter {
+  final int selectedIndex;
+
+  BottomNavPainter({required this.selectedIndex});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    Path path = Path();
+    double width = size.width;
+    double height = size.height;
+    double itemWidth = width / 3; // Chia đều cho 3 mục
+    double circleRadius = 30;
+    double circleCenterX = itemWidth * selectedIndex + itemWidth / 2;
+
+    path.moveTo(0, 0);
+    path.lineTo(circleCenterX - circleRadius, 0);
+
+    // Tạo hiệu ứng lõm xuống
+    path.quadraticBezierTo(
+      circleCenterX - circleRadius / 2,
+      0,
+      circleCenterX - circleRadius / 2,
+      circleRadius / 2,
+    );
+    path.quadraticBezierTo(
+      circleCenterX,
+      circleRadius * 1.5,
+      circleCenterX + circleRadius / 2,
+      circleRadius / 2,
+    );
+    path.quadraticBezierTo(
+      circleCenterX + circleRadius / 2,
+      0,
+      circleCenterX + circleRadius,
+      0,
+    );
+
+    path.lineTo(width, 0);
+    path.lineTo(width, height);
+    path.lineTo(0, height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

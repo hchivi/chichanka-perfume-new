@@ -32,14 +32,12 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppConstant.appMainColor,
+        backgroundColor: AppConstant.navy,
         elevation: 0,
         title: const Text(
           'Thanh toán',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
+              fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -107,42 +105,88 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
             },
           ),
         ],
-        child: Card(
-          elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppConstant.appMainColor.withOpacity(0.1),
-                  backgroundImage: NetworkImage(cartModel.productImages[0]),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+        child: GestureDetector(
+          onTap: () => _showProductDetails(context, cartModel),
+          child: Card(
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        cartModel.productName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: NetworkImage(cartModel.productImages[0]),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cartModel.productName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              cartModel.categoryName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '${_currencyFormat.format(cartModel.productTotalPrice)} đ',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: AppConstant.appMainColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (cartModel.isSale) ...[
+                                Text(
+                                  '${_currencyFormat.format(double.parse(cartModel.salePrice))} đ',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                              ],
+                              Text(
+                                '${_currencyFormat.format(cartModel.productTotalPrice)} đ',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppConstant.appMainColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                           Text(
                             'x${cartModel.productQuantity}',
@@ -153,14 +197,160 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.delivery_dining,
+                              size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Giao hàng: ${cartModel.deliveryTime}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cartModel.productDescription,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showProductDetails(BuildContext context, CartModel cartModel) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          contentPadding: EdgeInsets.zero,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    image: DecorationImage(
+                      image: NetworkImage(cartModel.productImages[0]),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cartModel.productName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cartModel.categoryName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          if (cartModel.isSale) ...[
+                            Text(
+                              '${_currencyFormat.format(double.parse(cartModel.salePrice))} đ',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            '${_currencyFormat.format(cartModel.productTotalPrice)} đ',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: AppConstant.appMainColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.delivery_dining,
+                              size: 20, color: Colors.grey[600]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Giao hàng: ${cartModel.deliveryTime}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Mô tả sản phẩm',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cartModel.productDescription,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Đóng',
+                style: TextStyle(color: AppConstant.appMainColor),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -257,7 +447,6 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                 icon: Icons.location_on,
               ),
               const SizedBox(height: 16),
-              // Thông tin miễn phí vận chuyển
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -276,7 +465,6 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Hình thức thanh toán
               const Text(
                 'Hình thức thanh toán:',
                 style: TextStyle(fontSize: 16),
@@ -301,7 +489,6 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              // Khung nhập mã giảm giá
               _buildTextField(
                 controller: couponController,
                 label: 'Nhập mã giảm giá',
@@ -310,7 +497,7 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstant.appMainColor,
+                  backgroundColor: AppConstant.navy,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -327,12 +514,10 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                       customerPhone: phoneController.text.trim(),
                       customerAddress: addressController.text.trim(),
                       customerDeviceToken: customerToken ?? '',
-                      paymentMethod:
-                          selectedPaymentMethod, // Truyền thêm hình thức thanh toán
-                      couponCode:
-                          couponController.text.trim(), // Truyền mã giảm giá
+                      paymentMethod: selectedPaymentMethod,
+                      couponCode: couponController.text.trim(),
                     );
-                    Get.back(); // Đóng bottom sheet sau khi đặt hàng thành công
+                    Get.back();
                   } else {
                     Get.snackbar(
                       'Lỗi',

@@ -18,7 +18,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   User? user = FirebaseAuth.instance.currentUser;
-  @override
+
   @override
   void initState() {
     super.initState();
@@ -45,14 +45,21 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    //final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: AppConstant.appScendoryColor,
+      backgroundColor: AppConstant.navy,
       appBar: AppBar(
-        backgroundColor: AppConstant.appScendoryColor,
+        backgroundColor: AppConstant.navy,
         elevation: 0,
+        centerTitle: true,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 30.0), // Dời logo xuống 10 pixel
+          child: Image.asset(
+            'assets/images/chichanka_logo.png',
+            height: 110, // Kích thước logo
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
-      // ignore: avoid_unnecessary_containers
       body: Container(
         child: Column(
           children: [
@@ -63,7 +70,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Lottie.asset('assets/images/splash-icon.json'),
               ),
             ),
-            // ignore: sized_box_for_whitespace
             Container(
               margin: EdgeInsets.only(bottom: 20.0),
               width: Get.width,

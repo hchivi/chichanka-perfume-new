@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chichanka_perfume/models/product-model.dart';
+import 'package:chichanka_perfume/screens/user-panel/main-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/product-details-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/settings-screen.dart';
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
@@ -19,6 +21,7 @@ class AllProductsScreen extends StatefulWidget {
 class _AllProductsScreenState extends State<AllProductsScreen> {
   String searchQuery = '';
   String sortBy = 'name_asc'; // Mặc định sắp xếp theo tên A-Z
+  int _selectedIndex = 0; // Mặc định chọn "Sản phẩm"
 
   // Hàm định dạng tiền tệ
   String formatPrice(String price) {
@@ -203,6 +206,101 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: Container(
+        height: 70,
+        child: Stack(
+          children: [
+            // Background with cutout effect
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: CustomPaint(
+                size: Size(double.infinity, 70),
+                painter: BottomNavPainter(selectedIndex: _selectedIndex),
+              ),
+            ),
+            // Navigation items
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(
+                  icon: Icons.shopping_bag,
+                  label: 'Sản phẩm',
+                  index: 0,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                  },
+                ),
+                _buildNavItem(
+                  icon: Icons.home,
+                  label: 'Trang chủ',
+                  index: 1,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 1;
+                    });
+                    Get.to(() => const MainScreen());
+                  },
+                ),
+                _buildNavItem(
+                  icon: Icons.settings,
+                  label: 'Cài đặt',
+                  index: 2,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                    Get.to(() => SettingsScreen());
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+    required VoidCallback onTap,
+  }) {
+    bool isSelected = _selectedIndex == index;
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? AppConstant.navy : Colors.transparent,
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey,
+              size: 24,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppConstant.navy : Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -225,4 +323,58 @@ extension ProductModelExtension on ProductModel {
       updatedAt: data['updatedAt'],
     );
   }
+}
+
+// Class BottomNavPainter
+class BottomNavPainter extends CustomPainter {
+  final int selectedIndex;
+
+  BottomNavPainter({required this.selectedIndex});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    Path path = Path();
+    double width = size.width;
+    double height = size.height;
+    double itemWidth = width / 3; // Chia đều cho 3 mục
+    double circleRadius = 30;
+    double circleCenterX = itemWidth * selectedIndex + itemWidth / 2;
+
+    path.moveTo(0, 0);
+    path.lineTo(circleCenterX - circleRadius, 0);
+
+    // Tạo hiệu ứng lõm xuống
+    path.quadraticBezierTo(
+      circleCenterX - circleRadius / 2,
+      0,
+      circleCenterX - circleRadius / 2,
+      circleRadius / 2,
+    );
+    path.quadraticBezierTo(
+      circleCenterX,
+      circleRadius * 1.5,
+      circleCenterX + circleRadius / 2,
+      circleRadius / 2,
+    );
+    path.quadraticBezierTo(
+      circleCenterX + circleRadius / 2,
+      0,
+      circleCenterX + circleRadius,
+      0,
+    );
+
+    path.lineTo(width, 0);
+    path.lineTo(width, height);
+    path.lineTo(0, height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

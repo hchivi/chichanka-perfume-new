@@ -17,10 +17,14 @@ class WelcomeScreen extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
-        backgroundColor: AppConstant.appScendoryColor,
-        title: Text(
-          'Chào mừng bạn đến với chúng tôi',
-          style: TextStyle(color: AppConstant.appTextColor),
+        backgroundColor: AppConstant.navy,
+        title: Padding(
+          padding: const EdgeInsets.only(top: 30.0), // Dời logo xuống 10 pixel
+          child: Image.asset(
+            'assets/images/chichanka_logo.png',
+            height: 110,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
       body: Container(
@@ -33,9 +37,9 @@ class WelcomeScreen extends StatelessWidget {
             Container(
               margin: EdgeInsets.only(top: 20.0),
               child: Text(
-                "Bắt đầu mua sắm",
+                "Chào mừng bạn",
                 style: TextStyle(
-                  fontSize: 16.0,
+                  fontSize: 20.0,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -48,7 +52,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: Get.width / 1.2,
                 height: Get.height / 12,
                 decoration: BoxDecoration(
-                  color: AppConstant.appScendoryColor,
+                  color: AppConstant.navy,
                   borderRadius: BorderRadius.circular(20.0),
                 ),
                 child: TextButton.icon(
@@ -75,7 +79,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: Get.width / 1.2,
                 height: Get.height / 12,
                 decoration: BoxDecoration(
-                  color: AppConstant.appScendoryColor,
+                  color: AppConstant.navy,
                   borderRadius: BorderRadius.circular(20.0),
                 ),
                 child: TextButton.icon(

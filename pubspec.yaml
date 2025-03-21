@@ -40,8 +40,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-  plugin:
-    platforms:
-      android:
-        package: com.vn.momo_flutter_plugin
-        pluginClass: MomoFlutterPlugin
