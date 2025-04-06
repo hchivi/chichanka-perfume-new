@@ -8,7 +8,6 @@ import 'package:chichanka_perfume/screens/user-panel/product-details-screen.dart
 import 'package:chichanka_perfume/screens/user-panel/settings-screen.dart';
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:chichanka_perfume/widgets/all-brands-widget.dart';
-import 'package:chichanka_perfume/widgets/all-products-widget.dart';
 import 'package:chichanka_perfume/widgets/banner-widget.dart';
 import 'package:chichanka_perfume/widgets/category-widget.dart';
 import 'package:chichanka_perfume/widgets/custom-drawer-widget.dart';
@@ -34,9 +33,10 @@ class _MainScreenState extends State<MainScreen>
     with SingleTickerProviderStateMixin {
   String searchQuery = '';
   final CartController cartController = Get.put(CartController());
-  int _selectedIndex = 1; // Trang chủ ở giữa mặc định được chọn
-  AnimationController? _controller; // Sử dụng nullable để tránh lỗi late
+  int _selectedIndex = 1;
+  AnimationController? _controller;
   Animation<double>? _animation;
+  final List<ProductModel> recentlyViewedProducts = [];
 
   @override
   void initState() {
@@ -56,6 +56,17 @@ class _MainScreenState extends State<MainScreen>
     super.dispose();
   }
 
+  void addToRecentlyViewed(ProductModel product) {
+    setState(() {
+      recentlyViewedProducts
+          .removeWhere((item) => item.productId == product.productId);
+      recentlyViewedProducts.insert(0, product);
+      if (recentlyViewedProducts.length > 10) {
+        recentlyViewedProducts.removeLast();
+      }
+    });
+  }
+
   String formatPrice(String price) {
     final formatter = NumberFormat('#,###', 'vi_VN');
     return '${formatter.format(double.parse(price))} đ';
@@ -73,7 +84,6 @@ class _MainScreenState extends State<MainScreen>
               .contains(searchQuery.toLowerCase()))
           .toList();
     }
-
     return products;
   }
 
@@ -94,7 +104,7 @@ class _MainScreenState extends State<MainScreen>
           statusBarIconBrightness: Brightness.light,
         ),
         title: Padding(
-          padding: const EdgeInsets.only(top: 20.0), // Dời logo xuống 10 pixel
+          padding: const EdgeInsets.only(top: 20.0),
           child: Image.asset(
             'assets/images/chichanka_logo.png',
             height: 100,
@@ -221,8 +231,11 @@ class _MainScreenState extends State<MainScreen>
                     itemBuilder: (context, index) {
                       final productModel = filteredProducts[index];
                       return GestureDetector(
-                        onTap: () => Get.to(() =>
-                            ProductDetailsScreen(productModel: productModel)),
+                        onTap: () {
+                          addToRecentlyViewed(productModel);
+                          Get.to(() =>
+                              ProductDetailsScreen(productModel: productModel));
+                        },
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey, width: 1.0),
@@ -380,11 +393,37 @@ class _MainScreenState extends State<MainScreen>
                             onTap: () => Get.to(() => AllProductsScreen()),
                             buttonText: "Xem thêm >",
                           ),
-                          AllProductsWidget(),
+                          AllProductsWidget(
+                              addToRecentlyViewed: addToRecentlyViewed),
                         ],
                       ),
                     ),
                   ),
+                  SizedBox(height: Get.height / 40),
+                  if (recentlyViewedProducts.isNotEmpty)
+                    AnimatedContainer(
+                      duration: Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                      margin: EdgeInsets.symmetric(horizontal: 9),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            HeadingWidget(
+                              headingTitle: "Sản phẩm đã xem gần đây",
+                              headingSubTitle: "Các sản phẩm bạn đã xem",
+                              onTap: () {},
+                              buttonText: "Xem thêm >",
+                            ),
+                            RecentProductsWidget(
+                                recentlyViewedProducts: recentlyViewedProducts),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
           ],
@@ -394,7 +433,6 @@ class _MainScreenState extends State<MainScreen>
         height: 70,
         child: Stack(
           children: [
-            // Background with cutout effect
             Positioned(
               bottom: 0,
               left: 0,
@@ -404,7 +442,6 @@ class _MainScreenState extends State<MainScreen>
                 painter: BottomNavPainter(selectedIndex: _selectedIndex),
               ),
             ),
-            // Navigation items
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -526,6 +563,200 @@ class _MainScreenState extends State<MainScreen>
   }
 }
 
+class AllProductsWidget extends StatelessWidget {
+  final Function(ProductModel) addToRecentlyViewed;
+
+  const AllProductsWidget({required this.addToRecentlyViewed});
+
+  @override
+  Widget build(BuildContext context) {
+    // Định dạng tiền tệ giống FlashSaleWidget
+    final NumberFormat currencyFormat = NumberFormat('#,###', 'vi_VN');
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('products').snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final products = snapshot.data!.docs
+            .map((doc) =>
+                ProductModel.fromMap(doc.data() as Map<String, dynamic>))
+            .toList()
+            .take(4)
+            .toList();
+
+        return Container(
+          height: 300,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return GestureDetector(
+                onTap: () {
+                  addToRecentlyViewed(product);
+                  Get.to(() => ProductDetailsScreen(productModel: product));
+                },
+                child: Container(
+                  width: 150,
+                  margin: const EdgeInsets.all(8),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                          child: Image(
+                            image: CachedNetworkImageProvider(
+                                product.productImages[0]),
+                            height: 150,
+                            width: 150,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  product.productName,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                const SizedBox(height: 8),
+                                // Hiển thị fullPrice với gạch ngang nếu có salePrice
+                                if (product.isSale &&
+                                    product.salePrice.isNotEmpty)
+                                  Text(
+                                    '${currencyFormat.format(double.parse(product.fullPrice))} đ',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                const SizedBox(height: 2),
+                                // Hiển thị salePrice nếu có, nếu không thì hiển thị fullPrice
+                                Text(
+                                  product.isSale && product.salePrice.isNotEmpty
+                                      ? '${currencyFormat.format(double.parse(product.salePrice))} đ'
+                                      : '${currencyFormat.format(double.parse(product.fullPrice))} đ',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: product.isSale
+                                        ? Colors.red
+                                        : Colors.black,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class RecentProductsWidget extends StatelessWidget {
+  final List<ProductModel> recentlyViewedProducts;
+
+  const RecentProductsWidget({required this.recentlyViewedProducts});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 300,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: recentlyViewedProducts.length,
+        itemBuilder: (context, index) {
+          final product = recentlyViewedProducts[index];
+          return GestureDetector(
+            onTap: () {
+              final mainScreenState =
+                  context.findAncestorStateOfType<_MainScreenState>();
+              mainScreenState?.addToRecentlyViewed(product);
+              Get.to(() => ProductDetailsScreen(productModel: product));
+            },
+            child: Container(
+              width: 150,
+              margin: EdgeInsets.all(8),
+              child: Card(
+                // Thêm border radius cho toàn bộ card nếu muốn
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    // Chỉ bo góc trên của hình ảnh
+                    ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                      child: Image(
+                        image: CachedNetworkImageProvider(
+                            product.productImages[0]),
+                        height: 150,
+                        width: 150,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            product.productName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            NumberFormat.currency(locale: 'vi_VN', symbol: 'đ')
+                                .format(double.parse(product.fullPrice)),
+                            style: TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class BottomNavPainter extends CustomPainter {
   final int selectedIndex;
 
@@ -540,14 +771,12 @@ class BottomNavPainter extends CustomPainter {
     Path path = Path();
     double width = size.width;
     double height = size.height;
-    double itemWidth = width / 3; // Chia đều cho 3 mục
+    double itemWidth = width / 3;
     double circleRadius = 30;
     double circleCenterX = itemWidth * selectedIndex + itemWidth / 2;
 
     path.moveTo(0, 0);
     path.lineTo(circleCenterX - circleRadius, 0);
-
-    // Tạo hiệu ứng lõm xuống
     path.quadraticBezierTo(
       circleCenterX - circleRadius / 2,
       0,
@@ -566,7 +795,6 @@ class BottomNavPainter extends CustomPainter {
       circleCenterX + circleRadius,
       0,
     );
-
     path.lineTo(width, 0);
     path.lineTo(width, height);
     path.lineTo(0, height);

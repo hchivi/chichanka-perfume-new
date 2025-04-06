@@ -18,7 +18,7 @@ class AllCategoriesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         iconTheme: IconThemeData(color: AppConstant.appTextColor),
-        backgroundColor: AppConstant.appMainColor,
+        backgroundColor: AppConstant.navy,
         title: Text(
           "Tất cả danh mục",
           style: TextStyle(color: AppConstant.appTextColor),

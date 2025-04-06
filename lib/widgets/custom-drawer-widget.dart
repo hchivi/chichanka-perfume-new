@@ -1,9 +1,10 @@
+// widgets/drawer-widget.dart
 import 'package:chichanka_perfume/screens/user-panel/all-orders-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/all-products-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/contact-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/favorite-product-screen.dart';
+import 'package:chichanka_perfume/screens/user-panel/personal-suggest-screen.dart';
 import 'package:chichanka_perfume/screens/user-panel/settings-screen.dart';
-
 import 'package:chichanka_perfume/utils/app-constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -31,6 +32,37 @@ class DrawerWidget extends StatelessWidget {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  Future<List<String>> _fetchPersonalizedSuggestions() async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        // Lấy lịch sử mua sắm từ Firestore
+        QuerySnapshot orderSnapshot = await FirebaseFirestore.instance
+            .collection('orders')
+            .where('userId', isEqualTo: currentUser.uid)
+            .get();
+
+        List<String> scentPreferences = [];
+        for (var doc in orderSnapshot.docs) {
+          Map<String, dynamic> orderData = doc.data() as Map<String, dynamic>;
+          List<dynamic> products = orderData['products'] ?? [];
+          for (var product in products) {
+            scentPreferences.add(product['scentType'] ?? 'Unknown');
+          }
+        }
+
+        // Loại bỏ trùng lặp và trả về danh sách
+        return scentPreferences.isNotEmpty
+            ? scentPreferences.toSet().toList()
+            : ['Floral', 'Woody', 'Citrus']; // Mặc định nếu không có dữ liệu
+      }
+      return ['Floral', 'Woody', 'Citrus']; // Mặc định nếu không có người dùng
+    } catch (e) {
+      print('Error fetching suggestions: $e');
+      return ['Floral', 'Woody', 'Citrus']; // Mặc định khi có lỗi
     }
   }
 
@@ -180,6 +212,18 @@ class DrawerWidget extends StatelessWidget {
           onTap: () {
             Get.back();
             Get.to(() => const AllOrdersScreen());
+          },
+        ),
+        _buildMenuItem(
+          context: context,
+          title: "Gợi ý nước hoa",
+          icon: Icons.recommend,
+          textColor: Colors.black,
+          onTap: () async {
+            Get.back();
+            List<String> suggestions = await _fetchPersonalizedSuggestions();
+            Get.to(
+                () => PersonalizedSuggestionsScreen(suggestions: suggestions));
           },
         ),
         _buildMenuItem(

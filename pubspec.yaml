@@ -21,6 +21,7 @@ dependencies:
   flutter_keyboard_visibility: ^6.0.0
   flutter_rating_bar: ^4.0.1
   flutter_swipe_action_cell: ^3.1.5
+  # flutter_zalopay_sdk: ^0.1.14
   fluttertoast: ^8.2.12
   get: ^4.7.2
   google_sign_in: ^6.3.0

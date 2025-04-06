@@ -59,7 +59,7 @@ class AllFlashSaleProductScreen extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 0.7, // Adjusted to give more vertical space
+              childAspectRatio: 0.61, // Adjusted to give more vertical space
             ),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {

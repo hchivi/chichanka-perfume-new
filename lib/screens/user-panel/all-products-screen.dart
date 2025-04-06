@@ -20,22 +20,21 @@ class AllProductsScreen extends StatefulWidget {
 
 class _AllProductsScreenState extends State<AllProductsScreen> {
   String searchQuery = '';
-  String sortBy = 'name_asc'; // Mặc định sắp xếp theo tên A-Z
-  int _selectedIndex = 0; // Mặc định chọn "Sản phẩm"
+  String sortBy = 'name_asc';
+  int _selectedIndex = 0;
+  int _currentPage = 1; // Trang hiện tại
+  final int _itemsPerPage = 6; // Số sản phẩm mỗi trang
 
-  // Hàm định dạng tiền tệ
   String formatPrice(String price) {
     final formatter = NumberFormat('#,###', 'vi_VN');
     return '${formatter.format(double.parse(price))} đ';
   }
 
-  // Hàm lọc và sắp xếp danh sách sản phẩm
   List<ProductModel> filterAndSortProducts(List<QueryDocumentSnapshot> docs) {
     List<ProductModel> products = docs.map((doc) {
       return ProductModel.fromMap(doc.data() as Map<String, dynamic>);
     }).toList();
 
-    // Lọc theo tìm kiếm
     if (searchQuery.isNotEmpty) {
       products = products
           .where((product) => product.productName
@@ -44,7 +43,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           .toList();
     }
 
-    // Sắp xếp
     switch (sortBy) {
       case 'name_asc':
         products.sort((a, b) => a.productName.compareTo(b.productName));
@@ -65,6 +63,16 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     return products;
   }
 
+  // Lấy danh sách sản phẩm cho trang hiện tại
+  List<ProductModel> getPaginatedProducts(List<ProductModel> products) {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+    return products.sublist(
+      startIndex,
+      endIndex > products.length ? products.length : endIndex,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,7 +86,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       ),
       body: Column(
         children: [
-          // Thanh tìm kiếm và bộ lọc
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
@@ -94,6 +101,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   onChanged: (value) {
                     setState(() {
                       searchQuery = value;
+                      _currentPage = 1; // Reset về trang 1 khi tìm kiếm
                     });
                   },
                 ),
@@ -114,13 +122,13 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   onChanged: (value) {
                     setState(() {
                       sortBy = value!;
+                      _currentPage = 1; // Reset về trang 1 khi sắp xếp
                     });
                   },
                 ),
               ],
             ),
           ),
-          // Danh sách sản phẩm
           Expanded(
             child: FutureBuilder<QuerySnapshot>(
               future: FirebaseFirestore.instance
@@ -143,63 +151,105 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   return const Center(child: Text('Không tìm thấy sản phẩm!'));
                 }
 
-                final filteredProducts =
-                    filterAndSortProducts(snapshot.data!.docs);
+                final allProducts = filterAndSortProducts(snapshot.data!.docs);
+                final paginatedProducts = getPaginatedProducts(allProducts);
+                final totalPages = (allProducts.length / _itemsPerPage).ceil();
 
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(5.0),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: filteredProducts.length,
-                  itemBuilder: (context, index) {
-                    final productModel = filteredProducts[index];
-
-                    return GestureDetector(
-                      onTap: () => Get.to(() =>
-                          ProductDetailsScreen(productModel: productModel)),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey, width: 1.0),
-                          borderRadius: BorderRadius.circular(10.0),
+                return Column(
+                  children: [
+                    Expanded(
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.all(5.0),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 0.75,
                         ),
-                        child: FillImageCard(
-                          borderRadius: 10.0,
-                          width: double.infinity,
-                          heightImage: Get.height / 5,
-                          imageProvider: CachedNetworkImageProvider(
-                            productModel.productImages[0],
-                          ),
-                          title: Center(
-                            child: Text(
-                              productModel.productName,
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: const TextStyle(
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.bold,
+                        itemCount: paginatedProducts.length,
+                        itemBuilder: (context, index) {
+                          final productModel = paginatedProducts[index];
+
+                          return GestureDetector(
+                            onTap: () => Get.to(() => ProductDetailsScreen(
+                                productModel: productModel)),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: Colors.grey, width: 1.0),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: FillImageCard(
+                                borderRadius: 10.0,
+                                width: double.infinity,
+                                heightImage: Get.height / 5,
+                                imageProvider: CachedNetworkImageProvider(
+                                  productModel.productImages[0],
+                                ),
+                                title: Center(
+                                  child: Text(
+                                    productModel.productName,
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: const TextStyle(
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                footer: Center(
+                                  child: Text(
+                                    formatPrice(productModel.fullPrice),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                          footer: Center(
-                            child: Text(
-                              formatPrice(productModel.fullPrice),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                              ),
-                            ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    // Điều khiển phân trang
+                    Container(
+                      padding: EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.arrow_left),
+                            onPressed: _currentPage > 1
+                                ? () {
+                                    setState(() {
+                                      _currentPage--;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          Text(
+                            'Trang $_currentPage / $totalPages',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.arrow_right),
+                            onPressed: _currentPage < totalPages
+                                ? () {
+                                    setState(() {
+                                      _currentPage++;
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -210,7 +260,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         height: 70,
         child: Stack(
           children: [
-            // Background with cutout effect
             Positioned(
               bottom: 0,
               left: 0,
@@ -220,7 +269,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                 painter: BottomNavPainter(selectedIndex: _selectedIndex),
               ),
             ),
-            // Navigation items
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -305,7 +353,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   }
 }
 
-// Giả định ProductModel có phương thức fromMap
+// Các class/extension khác giữ nguyên
 extension ProductModelExtension on ProductModel {
   static ProductModel fromMap(Map<String, dynamic> data) {
     return ProductModel(
@@ -325,7 +373,6 @@ extension ProductModelExtension on ProductModel {
   }
 }
 
-// Class BottomNavPainter
 class BottomNavPainter extends CustomPainter {
   final int selectedIndex;
 
@@ -340,14 +387,13 @@ class BottomNavPainter extends CustomPainter {
     Path path = Path();
     double width = size.width;
     double height = size.height;
-    double itemWidth = width / 3; // Chia đều cho 3 mục
+    double itemWidth = width / 3;
     double circleRadius = 30;
     double circleCenterX = itemWidth * selectedIndex + itemWidth / 2;
 
     path.moveTo(0, 0);
     path.lineTo(circleCenterX - circleRadius, 0);
 
-    // Tạo hiệu ứng lõm xuống
     path.quadraticBezierTo(
       circleCenterX - circleRadius / 2,
       0,

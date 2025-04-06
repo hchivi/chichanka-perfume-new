@@ -8,14 +8,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_card/image_card.dart';
-import 'package:intl/intl.dart'; // Thêm package intl
+import 'package:intl/intl.dart';
 
 class AllSingleCategoryProductsScreen extends StatelessWidget {
   final String categoryId;
 
   const AllSingleCategoryProductsScreen({super.key, required this.categoryId});
 
-  // Hàm định dạng tiền tệ với dấu chấm và ký hiệu đ
   String formatPrice(String price) {
     final formatter = NumberFormat('#,###', 'vi_VN');
     return '${formatter.format(double.parse(price))} đ';
@@ -38,12 +37,10 @@ class AllSingleCategoryProductsScreen extends StatelessWidget {
             .where('categoryId', isEqualTo: categoryId)
             .get(),
         builder: (context, snapshot) {
-          // Xử lý trạng thái lỗi
           if (snapshot.hasError) {
             return const Center(child: Text('Có lỗi xảy ra'));
           }
 
-          // Xử lý trạng thái đang tải
           if (snapshot.connectionState == ConnectionState.waiting) {
             return SizedBox(
               height: Get.height / 5,
@@ -51,21 +48,19 @@ class AllSingleCategoryProductsScreen extends StatelessWidget {
             );
           }
 
-          // Xử lý khi không có dữ liệu
           if (snapshot.data?.docs.isEmpty ?? true) {
             return const Center(child: Text('Không tìm thấy sản phẩm!'));
           }
 
-          // Xử lý khi có dữ liệu
           return GridView.builder(
             shrinkWrap: true,
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(5.0),
+            padding: const EdgeInsets.all(10.0),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 0.75,
+              childAspectRatio: 0.61, // Adjusted to give more vertical space
             ),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
@@ -78,42 +73,76 @@ class AllSingleCategoryProductsScreen extends StatelessWidget {
                     () => ProductDetailsScreen(productModel: productModel)),
                 child: Container(
                   decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.grey,
-                      width: 1.0,
-                    ),
+                    border: Border.all(color: Colors.grey, width: 1.0),
                     borderRadius: BorderRadius.circular(10.0),
                   ),
-                  child: FillImageCard(
-                    borderRadius: 10.0,
-                    width: double.infinity,
-                    heightImage: Get.height / 5,
-                    imageProvider: CachedNetworkImageProvider(
-                      productModel.productImages[0],
-                    ),
-                    title: Center(
-                      child: Text(
-                        productModel.productName,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: const TextStyle(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.bold,
+                  clipBehavior: Clip.hardEdge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: FillImageCard(
+                          borderRadius: 10.0,
+                          width: double.infinity,
+                          heightImage: Get.height * 0.21,
+                          imageProvider: CachedNetworkImageProvider(
+                            productModel.productImages[0],
+                          ),
                         ),
                       ),
-                    ),
-                    footer: Center(
-                      child: Text(
-                        productModel.isSale
-                            ? formatPrice(productModel.salePrice)
-                            : formatPrice(productModel.fullPrice),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                      Container(
+                        padding: const EdgeInsets.only(
+                            top: 2.0, bottom: 5.5, left: 8.0, right: 8.0),
+                        color: Colors.white,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              productModel.productName,
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                              style: const TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            if (productModel.isSale) ...[
+                              Text(
+                                formatPrice(productModel.fullPrice),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  decoration: TextDecoration.lineThrough,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                formatPrice(productModel.salePrice),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ] else ...[
+                              Text(
+                                formatPrice(productModel.fullPrice),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               );
@@ -125,7 +154,6 @@ class AllSingleCategoryProductsScreen extends StatelessWidget {
   }
 }
 
-// Giả định ProductModel có phương thức fromMap (nếu chưa có, thêm vào file product-model.dart)
 extension ProductModelExtension on ProductModel {
   static ProductModel fromMap(Map<String, dynamic> data) {
     return ProductModel(
